@@ -1,0 +1,2844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schools Dashboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Aref+Ruqaa:wght@700&family=Oswald:wght@500;600;700&family=Poppins:wght@500;600&family=IBM+Plex+Sans:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #1e3528;
+}
+
+body {
+  --bg: linear-gradient(160deg, #061a2e 0%, #0a2a44 40%, #08203a 70%, #030d18 100%);                /* 👈 change ONLY this */
+  --texture-strength: 0.08;
+  --texture-scale: 9px;
+  --gold: #f5c542;
+  --gold-light: #fff2c2;
+  --red: #bf0426;
+
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: var(--bg);
+  background-attachment: fixed;
+  position: relative;
+  min-height: 100vh;
+  color: #e6ede8;
+}
+
+/* Texture overlay — sits above bg, below content */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(0, 0, 0, calc(var(--texture-strength) * 1.4)) 0px,
+      rgba(0, 0, 0, calc(var(--texture-strength) * 1.4)) 1.5px,
+      transparent 1.5px,
+      transparent var(--texture-scale)
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, calc(var(--texture-strength) * 1.1)) 0px,
+      rgba(255, 255, 255, calc(var(--texture-strength) * 1.1)) 1.5px,
+      transparent 1.5px,
+      transparent var(--texture-scale)
+    ),
+    radial-gradient(
+      rgba(255, 255, 255, calc(var(--texture-strength) * 0.9)) 0.6px,
+      transparent 1.2px
+    ),
+    radial-gradient(
+      ellipse at center,
+      transparent 40%,
+      rgba(0, 0, 0, 0.35) 100%
+    );
+
+  background-size:
+    auto,
+    auto,
+    4px 4px,
+    100% 100%;
+
+  mix-blend-mode: soft-light;
+  opacity: 0.95;
+}
+
+/* Content above the texture */
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================
+   TOP BAR
+   ========================= */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border-bottom: 0px solid #000;
+}
+
+/* Navbar title — shows the selected sidebar button text */
+.navbar-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  max-width: 70%;
+}
+
+/* gold ornament lines on both sides of the title */
+.navbar-title::before,
+.navbar-title::after {
+  content: "";
+  flex: 0 0 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold));
+}
+
+.navbar-title::after {
+  background: linear-gradient(90deg, var(--gold), transparent);
+}
+
+.nav-title-text {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+
+  /* shimmering gold text */
+  background: linear-gradient(90deg, #f5c542 0%, #fff2c2 25%, #f5c542 50%, #fff2c2 75%, #f5c542 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 6px rgba(245, 197, 66, 0.35));
+  animation: navShimmer 6s linear infinite;
+}
+
+/* replay when the title changes */
+.nav-title-text.swap {
+  animation: navSwap 0.5s ease both, navShimmer 6s linear infinite;
+}
+
+@keyframes navShimmer {
+  from { background-position: 0% 0; }
+  to   { background-position: 200% 0; }
+}
+
+@keyframes navSwap {
+  from { opacity: 0; transform: translateY(-8px); letter-spacing: 8px; }
+  to   { opacity: 1; transform: translateY(0);    letter-spacing: 3px; }
+}
+
+/* =========================
+   NAVBAR RIGHT: PORTALS + ADMIN DROPDOWNS
+   ========================= */
+.navbar-right {
+  position: absolute;
+  top: 0;
+  right: 14px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-dd {
+  position: relative;
+}
+
+.nav-dd-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(245, 197, 66, 0.55);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--gold);
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.nav-dd-btn:hover,
+.nav-dd-btn:focus-visible,
+.nav-dd.open > .nav-dd-btn {
+  background: var(--gold);
+  color: #1b0a10;
+  outline: none;
+}
+
+.nav-dd-arrow {
+  font-size: 9px;
+  transition: transform 0.3s ease;
+}
+
+.nav-dd.open .nav-dd-arrow {
+  transform: rotate(180deg);
+}
+
+.nav-dd-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 210px;
+  padding: 6px 0;
+  /* dropdown background — dark teal solid gradient */
+  background: linear-gradient(160deg, #0b2f2f 0%, #072222 55%, #031414 100%);
+  border: 1px solid rgba(245, 197, 66, 0.45);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  z-index: 2100;
+}
+
+.nav-dd.open > .nav-dd-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.nav-dd-heading {
+  padding: 4px 12px 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(245, 197, 66, 0.25);
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: none;                 /* Word Case */
+  color: var(--gold);
+}
+
+.nav-dd-item {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border-left: 3px solid transparent;
+  color: #ffffff;                       /* visible dropdown text */
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: none;                 /* Word Case */
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
+}
+
+.nav-dd-item:hover,
+.nav-dd-item:focus-visible {
+  background: rgba(245, 197, 66, 0.08);
+  color: var(--gold);
+  padding-left: 16px;
+  outline: none;
+}
+
+/* selected option — its own background */
+.nav-dd-item.active {
+  color: #fff2c2;
+  border-left-color: var(--gold);
+  background: linear-gradient(90deg, rgba(191, 4, 38, 0.85) 0%, rgba(122, 10, 31, 0.55) 100%);
+}
+
+.admin-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  color: #e6ede8;
+  font-family: 'Poppins', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.admin-row-icon {
+  flex: 0 0 auto;
+  width: 18px;
+  text-align: center;
+}
+
+/* =========================
+   SIDEBAR
+   ========================= */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 220px;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+}
+
+.sidebar .nav {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.sidebar .nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Sidebar footer clock */
+.sidebar-clock {
+  margin-top: auto;              /* pins it to the bottom, above the logo */
+  padding: 0px 0px;
+  text-align: center;
+  white-space: nowrap;
+  color: grey;
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-top: 1px solid green;
+}
+
+.menu-item {
+  width: 100%;
+}
+
+/* Stylish Button from Uiverse.io by ferlagher */
+.menu-button {
+  position: relative;
+  width: 100%;
+  font-size: 1.0em;
+  background: transparent;
+  text-decoration: none;
+  border: none;
+  border-radius: 0.5em;
+  color: white;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  margin-top:20px;
+}
+
+.menu-button::before {
+  position: absolute;
+  content: '';
+  height: 0;
+  width: 0;
+  top: 0;
+  left: 0;
+  background: linear-gradient(135deg, rgba(33,33,33,1) 0%, rgba(33,33,33,1) 50%, rgba(150,4,31,1) 50%, rgba(191,4,38,1) 60%);
+  border-radius: 0 0 0.5em 0;
+  box-shadow: 0.2em 0.2em 0.2em rgba(0, 0, 0, 0.3);
+  transition: 0.3s;
+}
+
+.menu-button:hover::before {
+  width: 2.2em;
+  height: 2.2em;
+}
+
+.menu-button:active {
+  box-shadow: 0.2em 0.2em 0.3em rgba(0, 0, 0, 0.3);
+  transform: translate(0.1em, 0.1em);
+}
+
+.menu-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 0;
+  min-height: 52px;
+  padding: 6px 4px;
+  border-bottom: 1px dashed rgba(94, 234, 212, 0.15);
+  transition: background 0.3s ease;
+  background: transparent;
+}
+
+.menu-content:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.menu-content.active {
+  border-left: 5px solid red;
+}
+
+.menu-icon {
+  width: 36px;
+  height: 36px;
+  margin-right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  border-radius: 50%;
+  background: #000;
+  font-size: 16px;
+}
+
+.menu-title {
+  color: var(--text-secondary, #e6ede8);
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  line-height: 1.25;
+  text-transform: uppercase;
+  text-align: left;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  transition: color 0.25s ease, text-shadow 0.25s ease;
+  flex: 1;
+}
+
+/* Dropdown arrow (only on schools that have a dropdown) */
+.menu-arrow {
+  flex: 0 0 auto;
+  margin: 0 6px;
+  font-size: 10px;
+  color: var(--gold);
+  transition: transform 0.3s ease;
+}
+
+.menu-item.open > .menu-button .menu-arrow {
+  transform: rotate(180deg);
+}
+
+/* =========================
+   DROPDOWN (SUBMENU)
+   ========================= */
+.submenu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+  /* dropdown background — dark teal solid gradient */
+  background: linear-gradient(160deg, #0b2f2f 0%, #072222 55%, #031414 100%);
+}
+
+.menu-item.open > .submenu {
+  max-height: 320px;
+}
+
+.sub-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid black;
+  border-left: 5px solid transparent;
+  color: #f4f7f5;                       /* visible dropdown text */
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: none;                 /* Word Case */
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, padding-left 0.25s ease;
+}
+
+.sub-button:hover {
+  background: rgba(245, 197, 66, 0.08);
+  color: var(--gold);
+  padding-left: 10px;
+}
+
+/* selected option — its own background */
+.sub-button.active {
+  color: #fff2c2;
+  border-left-color: var(--gold);
+  background: linear-gradient(90deg, rgba(191, 4, 38, 0.85) 0%, rgba(122, 10, 31, 0.55) 100%);
+}
+/* =========================
+   MAIN PANEL
+   ========================= */
+.page-body-wrapper {
+  position: fixed;
+  top: 40px;
+  right: 0;
+  bottom: 0;
+  left: 220px;
+  background: transparent;
+  border-radius: 30px;
+}
+
+.main-panel {
+  position: relative;
+  width: 97%;
+  height: 95%;
+  padding: 10px;
+  overflow: hidden;
+  background: #000;
+  border-radius: 30px;
+}
+
+/* =========================
+   SCHOOL / HOME DISPLAY
+   ========================= */
+#welcome {
+  position: absolute;
+  inset: 10px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, #16324f 0%, #08121d 100%);
+  animation-duration: 1.4s;
+}
+
+.welcome-img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 30px;
+}
+
+.welcome-shade {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.32) 0%,
+    rgba(0, 0, 0, 0.62) 100%
+  );
+}
+
+.welcome-text {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5%;
+  text-align: center;
+}
+
+.wl {
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.wl-title {
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-weight: 700;
+  font-size: clamp(24px, 4.2vw, 84px);
+  letter-spacing: 0.08em;
+  line-height: 1.12;
+  color: var(--gold);
+  text-shadow:
+    0 3px 20px rgba(0, 0, 0, 0.65),
+    0 0 34px rgba(245, 197, 66, 0.35);
+}
+
+.wl-rule {
+  width: min(46%, 560px);
+  height: 2px;
+  margin: clamp(10px, 1.7vw, 26px) 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #f5c542 22%,
+    #fff2c2 50%,
+    #f5c542 78%,
+    transparent 100%
+  );
+  transform-origin: center;
+  animation: wlRule 12s ease infinite both;
+}
+
+.wl-sub {
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-weight: 600;
+  font-size: clamp(13px, 2.05vw, 42px);
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  color: var(--gold);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+}
+
+.wl-ar {
+  display: inline-block;
+  margin: clamp(10px, 1.6vw, 24px) 0 0;
+  font-family: 'Aref Ruqaa', 'Amiri', 'Traditional Arabic', serif;
+  font-weight: 700;
+  font-size: clamp(24px, 3.7vw, 76px);
+  line-height: 1.35;
+  color: var(--gold);
+  text-shadow: 0 3px 16px rgba(0, 0, 0, 0.7);
+  animation: wlArabic 12s linear infinite both;
+}
+
+.wl-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.wl-ch {
+  display: inline-block;
+  opacity: 0;
+  animation: wlLetter 12s cubic-bezier(0.2, 0.8, 0.2, 1) infinite both;
+}
+
+@keyframes wlLetter {
+  0%   { opacity: 0; transform: translateY(0.45em) scale(0.6); }
+  4.6% { opacity: 1; transform: translateY(0) scale(1); }
+  78%  { opacity: 1; transform: translateY(0) scale(1); }
+  88%  { opacity: 0; transform: translateY(-0.25em) scale(1.05); }
+  100% { opacity: 0; transform: translateY(0.45em) scale(0.6); }
+}
+
+@keyframes wlArabic {
+  0% {
+    opacity: 1;
+    clip-path: inset(-40% -6% -40% 100%);
+    animation-timing-function: steps(21, end);
+  }
+  14% {
+    opacity: 1;
+    clip-path: inset(-40% -6% -40% -6%);
+  }
+  78% {
+    opacity: 1;
+    clip-path: inset(-40% -6% -40% -6%);
+  }
+  88% {
+    opacity: 0;
+    clip-path: inset(-40% -6% -40% -6%);
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(-40% -6% -40% 100%);
+  }
+}
+
+@keyframes wlRule {
+  0%   { opacity: 0; transform: scaleX(0); }
+  5%   { opacity: 1; transform: scaleX(1); }
+  78%  { opacity: 1; transform: scaleX(1); }
+  88%  { opacity: 0; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(0); }
+}
+
+/* =========================
+   ACADEMICS — FLIP CARDS (one per Drive subfolder)
+   4 columns; up to 12 fit the panel, more than 12 scroll
+   ========================= */
+#cards {
+  position: absolute;
+  inset: 10px;
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: clamp(8px, 1.4vw, 0px);
+  padding:4px;
+  overflow: hidden;
+  border-radius: 40px;
+  background: black;
+  animation: cardsIn 0.6s ease both;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) transparent;
+}
+
+#cards.show { display: grid; }
+
+@keyframes cardsIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* loading / empty / error message inside the cards grid */
+.cards-msg {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: grey;
+}
+
+.flip-card {
+  perspective: 1000px;
+  min-width: 0;
+  min-height: 0;
+  container-type: size;           /* lets text scale with the card size */
+  cursor: pointer;
+}
+
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.flip-card:hover .flip-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-front,
+.flip-back {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4cqh;
+  padding: 6cqh 6cqw;
+  text-align: center;
+  border-radius: 0px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+
+/* ---- FRONT ---- */
+.flip-front {
+  padding: 0;
+  margin: 0;
+  border: 1px dashed #000;
+
+  /* dark textured glass — same weave + dot grain */
+  background-color: #101820;
+  background-image:
+    radial-gradient(
+      ellipse at 50% 35%,
+      rgba(255, 255, 255, 0.035) 0%,
+      transparent 60%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0.10) 0px,
+      rgba(0, 0, 0, 0.10) 1.5px,
+      transparent 1.5px,
+      transparent 9px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(255, 255, 255, 0.025) 1.5px,
+      transparent 1.5px,
+      transparent 9px
+    ),
+    radial-gradient(
+      rgba(255, 255, 255, 0.035) 0.6px,
+      transparent 1.2px
+    ),
+    linear-gradient(
+      160deg,
+      #1a2933 0%,
+      #101820 45%,
+      #070d13 100%
+    );
+
+  background-size: auto, auto, auto, 4px 4px, auto;
+
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.45);
+background:white;
+}
+
+.front-img {
+  max-width: 70%;
+  max-height: 70%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.6));
+}
+
+/* dark shade so the text stays readable over the image */
+.front-shade {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+.front-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  height: 100%;
+  padding-top: 0 6cqw;
+  text-align: center;
+}
+
+.card-icon {
+  font-size: clamp(14px, 16cqh, 40px);
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+.card-title {
+  margin: 0;
+  max-width: 100%;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-weight: 700;
+  font-size: clamp(11px, min(8.5cqw, 12cqh), 28px);
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #0b4fa8;                       /* blue */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  overflow-wrap: anywhere;
+  padding:4px;
+}
+
+.card-rule {
+  width: 55%;
+  height: 2px;
+  margin: 3cqh 0;
+  background: linear-gradient(90deg, transparent, #f5c542, #fff2c2, #f5c542, transparent);
+}
+
+.card-sub {
+  margin: 0;
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-weight: 600;
+  font-size: clamp(9px, min(8cqw, 12cqh), 24px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color:grey;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  
+  width:90%;
+}
+
+/* ---- BACK ---- */
+.flip-back {
+  transform: rotateY(180deg);
+  background:
+    white;
+  border: none;
+  box-shadow: none;
+}
+
+.flip-back img {
+  flex: 1 1 0;               /* image fills the space above the folder */
+  min-height: 0;
+  width: 90%;
+  max-width: 90%;
+  max-height: none;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.6));
+}
+
+/* when a card is flipped, the hidden front must not catch the clicks */
+.flip-card:hover .flip-front {
+  pointer-events: none;
+}
+
+/* Folder (icon + name) on the flip back — click to open it */
+.back-folder {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5cqw;
+  max-width: 100%;
+  padding: 1.6cqh 5cqw;
+  background: #101820;
+  border: 1.5px solid var(--gold);
+  border-radius: 10px;
+  color: var(--gold);
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-weight: 600;
+  font-size: clamp(9px, min(6cqw, 9cqh), 18px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.back-folder:hover,
+.back-folder:focus-visible {
+  background: var(--gold);
+  color: #1b0a10;
+  transform: scale(1.04);
+  outline: none;
+}
+
+.back-folder-icon {
+  flex: 0 0 auto;
+  font-size: 1.7em;
+  line-height: 1;
+}
+
+.back-folder-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.load-text {
+  font-family: 'Oswald', 'Times New Roman', serif;
+  font-weight: 700;
+  font-size: clamp(10px, min(9cqw, 13cqh), 26px);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color:red;
+  padding: 1.2cqh 8cqw;
+  border: 1.5px solid var(--gold);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.load-text:hover {
+  background: var(--gold);
+  color: #1b0a10;
+  transform: scale(1.06);
+}
+
+/* =========================
+   DRIVE FOLDER BROWSER (opens inside the main panel)
+   ========================= */
+#viewer {
+  position: absolute;
+  inset: 10px;
+  display: none;
+  animation: cardsIn 0.5s ease both;
+}
+
+#viewer.show { display: block; }
+
+.tf-browser {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 18px;
+  overflow: hidden;
+  font-family: 'Poppins', 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+.tf-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 6px 14px;
+  background: #eef5fa;
+  border-bottom: 2px solid #a8dea1;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1f2d3a;
+}
+
+.tf-back,
+.tf-crumb,
+.tf-retry {
+  all: unset;
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: #0b6f8f;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tf-back { font-weight: 700; padding: 3px 10px; }
+
+.tf-back:hover, .tf-back:focus-visible,
+.tf-crumb:hover, .tf-crumb:focus-visible { background: #d9ecf5; outline: none; }
+
+.tf-crumbs {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+.tf-crumb-current { padding: 3px 8px; font-weight: 700; color: #10305a; overflow-wrap: anywhere; }
+.tf-sep { color: #7fa3b5; font-weight: 700; }
+
+.tf-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(84px, 1fr);
+  gap: 8px;
+  background: #f7fafd;
+}
+
+.tf-item {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 2px solid #a8dea1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f2d3a;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.tf-item:hover,
+.tf-item:focus-visible { background: #e2f1f8; border-color: #7fc4a0; outline: none; }
+
+/* folder tile with the 3D folder icon */
+.tf-folder3d-btn {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+}
+.tf-folder3d-btn:hover,
+.tf-folder3d-btn:focus-visible { background: rgba(245, 197, 66, 0.10); }
+.tf-folder3d-btn .tf-item-name {
+  flex: 0 0 auto;
+  width: 100%;
+  font-family: 'IBM Plex Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #10305a;
+  text-align: center;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tf-item-icon {
+  flex: 0 0 auto;
+  font-size: 22px;
+  line-height: 1;
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+}
+.tf-item-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.tf-msg {
+  grid-column: 1 / -1;
+  padding: 40px 20px;
+  text-align: center;
+  color: #5a6b74;
+  font-size: 14px;
+}
+.tf-msg.error { color: #b3261e; }
+.tf-retry {
+  margin-top: 12px;
+  padding: 6px 18px;
+  border: 2px solid #a8dea1;
+  border-radius: 999px;
+}
+.tf-retry:hover { background: #e2f1f8; }
+
+/* the selected file, shown in the main panel */
+.tf-file {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+/* =========================
+   DASHBOARD-FILE VIEW: every folder of the school with its files
+   ========================= */
+#fileview {
+  position: absolute;
+  inset: 10px;
+  display: none;
+  animation: cardsIn 0.5s ease both;
+}
+
+#fileview.show { display: block; }
+
+.fv-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: clamp(10px, 2vw, 22px) clamp(10px, 3vw, 34px);
+  background: linear-gradient(180deg, #f7fafd 0%, #eef5fa 100%);
+  scrollbar-width: thin;
+  scrollbar-color: #b7c3cc transparent;
+}
+
+.fv-rows {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 980px;
+  display: flex;
+  flex-direction: column;     /* one column */
+  gap: 0;                     /* no gap between rows */
+  background: #ffffff;
+}
+
+.fv-file {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px 0 6px;              /* no top / bottom padding */
+  background: #ffffff;
+  border: none;
+  border-bottom: 1px dashed #2e8b57;  /* 1px dashed green line, same green as the file type */
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: #1f2d3a;
+  font-family: 'Poppins', 'Segoe UI', Roboto, Arial, sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease, border-left-color 0.15s ease;
+}
+
+.fv-file:hover,
+.fv-file:focus-visible {
+  background: #f3fbf4;
+  border-left-color: #e69b00;
+  box-shadow: none;
+  outline: none;
+}
+
+.fv-badge {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+}
+
+.fv-file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-transform: none;
+  text-shadow: none;
+}
+
+.fv-type {
+  flex: 0 0 auto;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #e8f5ec;
+  color: #2e8b57;
+  font-family: 'IBM Plex Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.fv-count {
+  margin-left: auto;
+  padding-left: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a6b74;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .fv-type { display: none; }
+  .fv-file { gap: 6px; padding: 0 8px 0 4px; }
+  .fv-file-name { font-size: 12.5px; }
+}
+
+/* =========================
+   WEB PAGE PANEL (Tadrees Portal + school portals)
+   ========================= */
+#webview {
+  position: absolute;
+  inset: 10px;
+  display: none;
+  animation: cardsIn 0.5s ease both;
+}
+
+#webview.show { display: block; }
+
+.wv-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.wv-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+.wv-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px;
+  text-align: center;
+  color: #5a6b74;
+  font-family: 'Poppins', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 14px;
+  background: #f7fafd;
+}
+
+.wv-url {
+  margin-left: auto;
+  padding-left: 12px;
+  max-width: 45%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: #7a8a99;
+}
+
+/* TADREES PORTAL: no header bar, fills the whole main panel,
+   and starts 100px down the page (the top 100px is scrolled out of view) */
+#webview.portal { inset: 0; }
+#webview.portal .tf-head { display: none; }
+#webview.portal .tf-browser { border-radius: 30px; }
+#webview.portal .wv-frame {
+  top: -100px;
+  height: calc(100% + 100px);
+}
+
+/* LOCKED portal (page load + TADREES-HOME): starts 130px down, no scrolling, no scrollbar */
+#webview.portal.locked .wv-frame {
+  top: -130px;
+  height: calc(100% + 130px);
+  overflow: hidden;
+}
+
+/* =========================
+   GOOGLE SHEET DRAWN BY THE DASHBOARD (Master Link File files)
+   links in it open inside the main panel
+   ========================= */
+.ml-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: #ffffff;
+  scrollbar-width: thin;
+}
+
+table.ml-table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-family: Arial, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12.5px;
+  color: #000000;
+}
+
+.ml-table th,
+.ml-table td {
+  height: 21px;
+  padding: 2px 6px;
+  border: 1px solid #e2e3e3;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.ml-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8f9fa;
+  color: #5f6368;
+  font-weight: 600;
+  font-size: 11px;
+  text-align: center;
+  border-color: #c0c0c0;
+}
+
+.ml-table th.ml-rownum {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 42px;
+  background: #f8f9fa;
+  color: #5f6368;
+  font-weight: 600;
+  font-size: 11px;
+  text-align: center;
+  border-color: #c0c0c0;
+}
+
+.ml-table thead th.ml-corner { left: 0; z-index: 3; }
+
+.ml-table tbody tr:hover td { background-color: #f1f8ff; }
+
+.ml-link {
+  color: #1155cc;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ml-link:hover,
+.ml-link:focus-visible { color: #0b3d91; outline: none; }
+
+.ml-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 0 8px;
+  background: #f1f3f4;
+  border-top: 1px solid #dadce0;
+  scrollbar-width: none;
+}
+
+.ml-tabs:empty { display: none; }
+
+.ml-tab {
+  all: unset;
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  font-family: 'Poppins', 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3c4043;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+}
+
+.ml-tab:hover { background: #e8eaed; }
+
+.ml-tab.active {
+  background: #ffffff;
+  color: #188038;
+  border-bottom-color: #188038;
+}
+
+/* "Edit in Google Sheets" button in the folder-browser header */
+.tf-edit {
+  all: unset;
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1.5px solid #a8dea1;
+  border-radius: 999px;
+  color: #0b6f8f;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tf-edit:hover, .tf-edit:focus-visible { background: #d9ecf5; outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-ch, .wl-ar, .wl-rule { animation: none; opacity: 1; transform: none; clip-path: none; }
+  .flip-inner { transition: none; }
+  #cards, #viewer, #fileview, #webview { animation: none; }
+  .nav-title-text, .nav-title-text.swap { animation: none; }
+  .nav-dd-menu { transition: none; }
+}
+
+@media (max-width: 700px) {
+  .sidebar { width: 180px; }
+  .page-body-wrapper { left: 180px; }
+  .menu-title { font-size: 12px; }
+  .navbar-title::before,
+  .navbar-title::after { flex-basis: 24px; }
+  .nav-title-text { font-size: 12px; letter-spacing: 2px; }
+  .navbar-right { right: 6px; gap: 4px; }
+  .nav-dd-btn { padding: 0 8px; font-size: 11px; }
+}
+</style>
+<!-- Tailwind (Play CDN): only used for the 3D folder icon in the Drive folder browser.
+     Preflight is switched off so it never touches this page's own styling. -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { corePlugins: { preflight: false } };
+</script>
+</head>
+
+<body>
+
+<nav class="navbar">
+  <div class="navbar-title">
+    <span class="nav-title-text" id="navTitle">TADREES-HOME</span>
+  </div>
+
+  <!-- Right side of the navbar: PORTALS (changes with the sidebar selection) + ADMIN -->
+  <div class="navbar-right">
+    <div class="nav-dd" id="portalsDD">
+      <button type="button" class="nav-dd-btn" aria-haspopup="true" aria-expanded="false">
+        🌐 Portals <span class="nav-dd-arrow">▼</span>
+      </button>
+      <div class="nav-dd-menu" role="menu">
+        <div class="nav-dd-heading">Portals</div>
+        <div id="portalsList"></div>
+      </div>
+    </div>
+
+    <div class="nav-dd" id="adminDD">
+      <button type="button" class="nav-dd-btn" aria-haspopup="true" aria-expanded="false">
+        ⚙️ ADMIN <span class="nav-dd-arrow">▼</span>
+      </button>
+      <div class="nav-dd-menu">
+        <div class="nav-dd-heading">Admin</div>
+        <div class="admin-row"><span class="admin-row-icon">👤</span><span id="adminName"></span></div>
+        <div class="admin-row"><span class="admin-row-icon">✉️</span><span id="adminEmail"></span></div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<nav class="sidebar" id="sidebar">
+  <div style="border-bottom: 1px solid green; padding: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background:transparent; box-sizing: border-box;">
+    <img src="Images/tadreeslogo.png" alt="Tadrees Logo" style="width:100%; height: 100%; object-fit: contain; display: block;">
+  </div>
+
+  <ul class="nav" id="navList">
+
+    <!-- TADREES-HOME: opens the Tadrees website; its dropdown is built from HOME_SUBMENU -->
+    <li class="menu-item has-sub" data-school="0" data-menu="home">
+      <button class="menu-button" type="button" data-school="0">
+        <div class="menu-content active">
+          <span class="menu-icon">🏠</span>
+          <span class="menu-title">TADREES-HOME</span>
+          <span class="menu-arrow">▼</span>
+        </div>
+      </button>
+      <ul class="submenu"></ul>
+    </li>
+
+    <!-- Schools with dropdown: Alrowad, Al-Olaya, Dar-Al-Uloom.
+         The dropdown (.submenu) is generated by JS from the SUBMENU list below. -->
+    <li class="menu-item has-sub" data-school="1">
+      <button class="menu-button" type="button" data-school="1">
+        <div class="menu-content">
+          <span class="menu-icon">🏫</span>
+          <span class="menu-title">ALROWAD INTERNATIONAL SCHOOLS</span>
+          <span class="menu-arrow">▼</span>
+        </div>
+      </button>
+      <ul class="submenu"></ul>
+    </li>
+
+    <li class="menu-item has-sub" data-school="2">
+      <button class="menu-button" type="button" data-school="2">
+        <div class="menu-content">
+          <span class="menu-icon">🏫</span>
+          <span class="menu-title">AL-OLAYA PRIVATE SCHOOLS</span>
+          <span class="menu-arrow">▼</span>
+        </div>
+      </button>
+      <ul class="submenu"></ul>
+    </li>
+
+    <li class="menu-item has-sub" data-school="3">
+      <button class="menu-button" type="button" data-school="3">
+        <div class="menu-content">
+          <span class="menu-icon">🏫</span>
+          <span class="menu-title">DAR-AL-ULOOM INTERNATIONAL SCHOOL</span>
+          <span class="menu-arrow">▼</span>
+        </div>
+      </button>
+      <ul class="submenu"></ul>
+    </li>
+
+  </ul>
+
+  <div class="sidebar-clock" id="sidebarClock"></div>
+
+  <div style="border-bottom: 1px solid black; padding: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background:transparent; box-sizing: border-box;">
+    <img src="Images/tadreeslogo.png" alt="Tadrees Logo" style="width:100%; height: 100%; object-fit: contain; display: block;">
+  </div>
+</nav>
+
+<div class="page-body-wrapper">
+  <main class="main-panel">
+
+    <section id="welcome">
+      <img class="welcome-img" id="welcomeImage" src="Images/alrowad.png" alt="">
+      <div class="welcome-shade"></div>
+
+      <div class="welcome-text">
+
+
+        <h1 class="wl wl-title" id="wlTitle">ACADEMIC DASHBOARD</h1>
+        <div class="wl-rule" id="wlRule"></div>
+        <h2 class="wl wl-sub" id="wlSub">ALROWAD INTERNATIONAL SCHOOLS</h2>
+        <p class="wl-ar" id="wlAr" lang="ar" dir="rtl">مدارس الرواد العالمية</p>
+      </div>
+    </section>
+
+    <!-- Flip cards (one per Drive subfolder) — filled by JS -->
+    <section id="cards" aria-label="Academic folders"></section>
+
+    <!-- Folder / file viewer — opens inside the main panel
+         (Dashboard-Folder View cards AND the Master Link File Drive folder) -->
+    <section id="viewer" aria-label="Folder viewer">
+      <div class="tf-browser">
+        <div class="tf-head">
+          <button type="button" class="tf-back" id="tfBack">&#8592; Back</button>
+          <span class="tf-sep" id="tfBackSep">&#8250;</span>
+          <div class="tf-crumbs" id="tfCrumbs"></div>
+          <button type="button" class="tf-edit" id="tfEdit" style="display:none;">✏️ Edit in Google Sheets</button>
+        </div>
+        <div class="tf-list" id="tfList"></div>
+        <div class="ml-wrap" id="tfSheet" style="display:none;"></div>
+        <div class="ml-tabs" id="tfSheetTabs" style="display:none;"></div>
+        <iframe id="tfFrame" class="tf-file" title="Selected file (Google editor / Drive preview)" style="display:none;" allow="autoplay; fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
+      </div>
+    </section>
+
+    <!-- Dashboard-File View — every folder of the school with its files -->
+    <section id="fileview" aria-label="All files">
+      <div class="tf-browser">
+        <div class="tf-head">
+          <button type="button" class="tf-back" id="fvBack" style="display:none;">&#8592; Back to files</button>
+          <span class="tf-sep" id="fvBackSep" style="display:none;">&#8250;</span>
+          <div class="tf-crumbs" id="fvCrumbs"></div>
+        </div>
+        <div class="fv-list" id="fvList"></div>
+        <iframe id="fvFrame" class="tf-file" title="Selected file" style="display:none;" allow="autoplay; fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
+      </div>
+    </section>
+
+    <!-- Web page shown inside the main panel (Tadrees Portal, school portals) -->
+    <section id="webview" aria-label="Web page">
+      <div class="tf-browser">
+        <div class="tf-head">
+          <button type="button" class="tf-back" id="wvBack" style="display:none;">&#8592; Back</button>
+          <span class="tf-sep" id="wvSep" style="display:none;">&#8250;</span>
+          <div class="tf-crumbs" id="wvTitle"></div>
+          <span class="wv-url" id="wvUrl"></span>
+        </div>
+        <div class="wv-body">
+          <iframe id="wvFrame" class="wv-frame" title="Web page" style="display:none;" allow="autoplay; fullscreen; clipboard-read; clipboard-write" allowfullscreen></iframe>
+          <div class="wv-msg" id="wvMsg"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/*
+  SCHOOL NAVIGATION / DISPLAY LOGIC + DROPDOWN + ACADEMICS FLIP CARDS + DRIVE VIEWER.
+  Drive folder links are kept in Code.gs (Apps Script), not in this file.
+  This page only knows the web app URL (API_URL) and gets folder data from it as JSON.
+*/
+
+const schools = {
+  0: { image: 'Images/alrowad.png', title: 'ACADEMIC DASHBOARD', name: 'ALROWAD INTERNATIONAL SCHOOLS', arabic: 'مدارس الرواد العالمية' },
+  1: { image: 'Images/alrowad.png', title: 'ACADEMIC DASHBOARD', name: 'ALROWAD INTERNATIONAL SCHOOLS', arabic: 'مدارس الرواد العالمية' },
+  2: { image: 'Images/olaya.png',   title: 'ACADEMIC DASHBOARD', name: 'AL-OLAYA PRIVATE SCHOOLS',      arabic: 'مدارس العليا الأهلية' },
+  3: { image: 'Images/darul.png',   title: 'ACADEMIC DASHBOARD', name: 'DAR-AL-ULOOM INTERNATIONAL SCHOOL', arabic: 'مدرسة دار العلوم الدولية' }
+};
+
+/* Sidebar dropdown items shown under each school */
+const SUBMENU = [
+  { key: 'academics',  label: '📂 Dashboard-Folder View' },
+  { key: 'fileview',   label: '🗂️ Dashboard-File View' },
+  { key: 'curriculum', label: '📘 Dashboard-Curriculum' },
+  { key: 'teachers',   label: '👩‍🏫 Dashboard-Teachers List' },
+  { key: 'other1',     label: '📁 Dashboard-Other' },
+  { key: 'other2',     label: '📁 Dashboard-Other' },
+  { key: 'other3',     label: '📁 Dashboard-Other' }
+];
+
+/* Navbar "Portals" dropdown — its items follow the category selected in the sidebar */
+const NAV_PORTALS_HOME = [
+  { key: 'tadrees',   label: '🌐 Tadrees Portal' }
+];
+const NAV_PORTALS_SCHOOL = {
+  /* ALROWAD: all four portals */
+  1: [
+    { key: 'portal',    label: '🏫 School Portal' },
+    { key: 'myais',     label: '🎓 My Ais Portal' },
+    { key: 'lms',       label: '💻 LMS Portal' },
+    { key: 'timetable', label: '🗓️ Time Table Portal' }
+  ],
+  /* AL-OLAYA and DAR-AL-ULOOM: School Portal only */
+  2: [
+    { key: 'portal',    label: '🏫 School Portal' }
+  ],
+  3: [
+    { key: 'portal',    label: '🏫 School Portal' }
+  ]
+};
+
+/* Navbar "Admin" dropdown — 👈 put the real admin details here */
+const ADMIN_INFO = {
+  name:  'Alee Abdul Kareem Kamara',
+  email: 'a.kamara@ais.sch.sa'
+};
+
+const welcome  = document.getElementById('welcome');
+const image    = document.getElementById('welcomeImage');
+const title    = document.getElementById('wlTitle');
+const sub      = document.getElementById('wlSub');
+const arabic   = document.getElementById('wlAr');
+const rule     = document.getElementById('wlRule');
+const cards    = document.getElementById('cards');
+const navTitle = document.getElementById('navTitle');
+
+const viewer   = document.getElementById('viewer');
+const tfList   = document.getElementById('tfList');
+const tfCrumbs = document.getElementById('tfCrumbs');
+const tfFrame  = document.getElementById('tfFrame');
+const tfBack   = document.getElementById('tfBack');
+const tfBackSep = document.getElementById('tfBackSep');
+const tfSheet     = document.getElementById('tfSheet');
+const tfSheetTabs = document.getElementById('tfSheetTabs');
+const tfEdit      = document.getElementById('tfEdit');
+
+const fileview  = document.getElementById('fileview');
+const fvList    = document.getElementById('fvList');
+const fvCrumbs  = document.getElementById('fvCrumbs');
+const fvFrame   = document.getElementById('fvFrame');
+const fvBack    = document.getElementById('fvBack');
+const fvBackSep = document.getElementById('fvBackSep');
+
+const webview   = document.getElementById('webview');
+const wvFrame   = document.getElementById('wvFrame');
+const wvMsg     = document.getElementById('wvMsg');
+const wvTitle   = document.getElementById('wvTitle');
+const wvUrl     = document.getElementById('wvUrl');
+const wvBack    = document.getElementById('wvBack');
+const wvSep     = document.getElementById('wvSep');
+
+/* ---------- whole page in full screen whenever a file is opened (sidebar + navbar stay visible) ---------- */
+function enterPanelFullscreen() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) return;
+  const el = document.documentElement;
+  try {
+    const p = el.requestFullscreen ? el.requestFullscreen()
+            : (el.webkitRequestFullscreen ? el.webkitRequestFullscreen() : null);
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) { /* browser refused — keep the normal view */ }
+}
+
+function exitPanelFullscreen() {
+  if (!(document.fullscreenElement || document.webkitFullscreenElement)) return;
+  try {
+    const p = document.exitFullscreen ? document.exitFullscreen()
+            : (document.webkitExitFullscreen ? document.webkitExitFullscreen() : null);
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) {}
+}
+
+let requestToken = 0;          /* ignores replies from clicks the user has moved on from */
+let currentSchoolName = '';
+
+/* ---------- Apps Script web app (JSON API) ---------- */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyvg0DHhGgiuNkx5VCwDl1xgdglwB4lcELgQC-c0JbArUt5lIa4zh_oAxNxVZWDOb09/exec';
+
+function callServer(params, onOk, onFail) {
+  const url = API_URL + '?' + new URLSearchParams(params).toString();
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error('Server error ' + r.status);
+      return r.json();
+    })
+    .then(res => {
+      if (!res || !res.ok) throw new Error((res && res.error) || 'Unknown error');
+      onOk(res.data);
+    })
+    .catch(onFail);
+}
+
+function errText(err) {
+  return (err && err.message) ? err.message : String(err);
+}
+
+/* ---------- PRELOAD: every folder + file of every school, fetched once when the page opens ----------
+   TREE[school]      = { id, name, folders:[ {id, name, folders:[…], files:[…]} ], files:[…] }
+   FOLDER_INDEX[id]  = { folders:[{id,name}], files:[…] }  → folder browser opens instantly
+   Each time a dropdown option is used, that school is quietly re-read in the background,
+   so new folders/files appear the next time without reloading the page. */
+const PRELOAD_SCHOOLS = [1, 2, 3];
+const TREE = {};
+const TREE_PROMISE = {};
+const TREE_REFRESHING = {};
+const FOLDER_INDEX = {};
+
+function indexTree_(node) {
+  FOLDER_INDEX[node.id] = {
+    folders: (node.folders || []).map(f => ({ id: f.id, name: f.name })),
+    files: node.files || []
+  };
+  (node.folders || []).forEach(indexTree_);
+}
+
+function fetchTree_(schoolId) {
+  return new Promise((resolve, reject) => {
+    callServer({ action: 'tree', school: schoolId },
+      tree => { TREE[schoolId] = tree; indexTree_(tree); resolve(tree); },
+      reject);
+  });
+}
+
+function getTree(schoolId) {
+  if (TREE[schoolId]) return Promise.resolve(TREE[schoolId]);
+  if (!TREE_PROMISE[schoolId]) {
+    TREE_PROMISE[schoolId] = fetchTree_(schoolId).catch(err => {
+      delete TREE_PROMISE[schoolId];          /* allow a retry next time */
+      throw err;
+    });
+  }
+  return TREE_PROMISE[schoolId];
+}
+
+function refreshTreeInBackground(schoolId) {
+  if (!TREE[schoolId] || TREE_REFRESHING[schoolId]) return;
+  TREE_REFRESHING[schoolId] = true;
+  fetchTree_(schoolId)
+    .catch(() => { /* keep the data we already have */ })
+    .then(() => { TREE_REFRESHING[schoolId] = false; });
+}
+
+/* start loading all schools right away, in parallel */
+PRELOAD_SCHOOLS.forEach(id => getTree(id).catch(err => console.warn('Preload failed for school ' + id + ':', err)));
+
+/* ---------- which main-panel view is visible ---------- */
+function showPanel(name) {
+  welcome.style.display = (name === 'welcome') ? '' : 'none';
+  cards.classList.toggle('show', name === 'cards');
+  viewer.classList.toggle('show', name === 'viewer');
+  fileview.classList.toggle('show', name === 'fileview');
+  webview.classList.toggle('show', name === 'web');
+  if (name !== 'viewer') tfClearFrame();
+  if (name !== 'fileview') fvClearFrame();
+  if (name !== 'web') wvClearFrame();
+}
+
+/* ---------- navbar title = selected main sidebar button text ---------- */
+function setNavTitle(text) {
+  if (navTitle.textContent === text) return;
+  navTitle.textContent = text;
+  navTitle.title = text;                 /* full text on hover if it gets cut off */
+  navTitle.classList.remove('swap');
+  void navTitle.offsetWidth;             /* restart the swap animation */
+  navTitle.classList.add('swap');
+}
+
+/* ---------- welcome text animation (unchanged) ---------- */
+function animateText(el, step, startDelay) {
+  const text = el.textContent.replace(/\s+/g, ' ').trim();
+  const words = text.split(' ');
+  let n = 0;
+
+  el.setAttribute('aria-label', text);
+  el.textContent = '';
+
+  words.forEach((word, wi) => {
+    const w = document.createElement('span');
+    w.className = 'wl-word';
+    w.setAttribute('aria-hidden', 'true');
+
+    Array.from(word).forEach(ch => {
+      const c = document.createElement('span');
+      c.className = 'wl-ch';
+      c.textContent = ch;
+      c.style.animationDelay = (startDelay + n * step).toFixed(2) + 's';
+      n++;
+      w.appendChild(c);
+    });
+
+    el.appendChild(w);
+
+    if (wi < words.length - 1) {
+      el.appendChild(document.createTextNode(' '));
+    }
+  });
+}
+
+/* ---------- show the welcome screen for a school ---------- */
+function loadSchool(id) {
+  const school = schools[id];
+  if (!school) return;
+
+  requestToken++;                 /* cancel any pending Drive load */
+  showPanel('welcome');
+
+  /* Restart the same load animation every time a school is clicked. */
+  welcome.style.animation = 'none';
+  image.style.animation = 'none';
+  rule.style.animation = 'none';
+  arabic.style.animation = 'none';
+
+  void welcome.offsetWidth;
+
+  welcome.style.animation = '';
+  image.style.animation = '';
+  rule.style.animation = '';
+  arabic.style.animation = '';
+
+  if (school.image) {
+    image.src = school.image;
+    image.style.display = 'block';
+  } else {
+    image.removeAttribute('src');
+    image.style.display = 'none';
+  }
+
+  title.textContent = school.title;
+  sub.textContent = school.name;
+  arabic.textContent = school.arabic || '';
+
+  animateText(title, 0.075, 0);
+  animateText(sub, 0.05, 0.35);
+
+  arabic.style.display = school.arabic ? 'inline-block' : 'none';
+}
+
+/* ---------- Academics: one flip card per Drive subfolder (A → Z) ---------- */
+function cardsMessage(text) {
+  cards.style.gridTemplateRows = 'repeat(3, minmax(0, 1fr))';
+  cards.style.overflowY = 'hidden';
+  cards.innerHTML = '';
+  const m = document.createElement('div');
+  m.className = 'cards-msg';
+  m.textContent = text;
+  cards.appendChild(m);
+}
+
+function showAcademics(id, buttonText) {
+  const token = ++requestToken;
+  currentSchoolName = buttonText;
+
+  /* Flip-front image per school (Alrowad = 1, Al-Olaya = 2, Dar-Al-Uloom = 3) */
+  const frontImages = {
+    1: 'Images/logo.png',
+    2: 'Images/olayalogo.png',
+    3: 'Images/daraluloomlogo.png'
+  };
+  const imgSrc = frontImages[id] || 'Images/tadreeslogo.png';
+
+  /* Flip-back image per school (Al-Olaya = 2, Dar-Al-Uloom = 3) */
+  const backImages = {
+    2: 'Images/olayalogo.png',
+    3: 'Images/daraluloomlogo.png'
+  };
+  const backSrc   = backImages[id] || 'Images/logo.png';
+  const backStyle = backImages[id] ? ' style="flex:1 1 0; min-height:0; width:calc(100% + 12cqw); max-width:none; margin:0 -6cqw; object-fit:contain;"' : '';
+
+  cardsMessage('Loading folders…');
+  showPanel('cards');
+
+  /* restart entrance animation */
+  cards.classList.remove('show');
+  void cards.offsetWidth;
+  cards.classList.add('show');
+
+  const hadTree = !!TREE[id];
+  getTree(id)
+    .then(tree => {
+      if (token !== requestToken) return;
+      renderCards(tree.folders || [], imgSrc, backSrc, backStyle);
+      if (hadTree) refreshTreeInBackground(id);
+    })
+    .catch(err => {
+      if (token !== requestToken) return;
+      cardsMessage('Could not load folders — ' + errText(err));
+    });
+}
+
+function renderCards(folders, imgSrc, backSrc, backStyle) {
+  if (!folders.length) {
+    cardsMessage('No folders found');
+    return;
+  }
+
+  /* up to 12 cards fill the panel; more than 12 keep the same size and scroll */
+  const rows = Math.ceil(folders.length / 4);
+  if (rows <= 3) {
+    cards.style.gridTemplateRows = 'repeat(3, minmax(0, 1fr))';
+    cards.style.overflowY = 'hidden';
+  } else {
+    cards.style.gridTemplateRows = `repeat(${rows}, calc((100% - 16px) / 3))`;
+    cards.style.overflowY = 'auto';
+  }
+
+  cards.innerHTML = '';
+
+  folders.forEach((folder, idx) => {
+    const card = document.createElement('div');
+    card.className = 'flip-card';
+    card.innerHTML = `
+      <div class="flip-inner">
+        <div class="flip-front">
+          <div class="front-shade"></div>
+          <div class="front-content">
+            <img class="front-img" src="${imgSrc}" alt="">
+            <h3 class="card-title"></h3>
+            <div class="card-rule"></div>
+          </div>
+        </div>
+        <div class="flip-back">
+          <img src="${backSrc}" alt="Logo"${backStyle}>
+          <button class="back-folder" type="button">
+            <span class="back-folder-icon">📁</span>
+            <span class="back-folder-name"></span>
+          </button>
+        </div>
+      </div>`;
+
+    /* Drive subfolder name in place of the school name */
+    card.querySelector('.card-title').textContent = folder.name;
+
+    /* folder on the flip back: name + click opens its subfolders/files in the main panel */
+    const folderBtn = card.querySelector('.back-folder');
+    folderBtn.querySelector('.back-folder-name').textContent = folder.name;
+    folderBtn.title = folder.name;
+    folderBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      openFolder(folder);
+    });
+
+    cards.appendChild(card);
+  });
+}
+
+/* ---------- Drive folder browser: folders & files open inside the main panel ---------- */
+let tfPath = [];          /* [{id, name}] from the card's folder down to the current one */
+let tfFile = null;        /* the file being shown, or null */
+let tfFilesById = {};
+let tfCache = {};
+let tfToken = 0;
+let tfMode = 'cards';     /* 'cards' = opened from a flip card, 'master' = Master Link File folder */
+
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function tfIcon(mime) {
+  mime = String(mime || '');
+  if (mime.indexOf('image/') === 0) return '🖼️';
+  if (mime.indexOf('video/') === 0) return '🎬';
+  if (mime.indexOf('audio/') === 0) return '🎵';
+  if (mime === 'application/pdf') return '📕';
+  if (/spreadsheet|excel|csv/.test(mime)) return '📊';
+  if (/presentation|powerpoint/.test(mime)) return '📽️';
+  if (/form/.test(mime)) return '📝';
+  if (/document|word|rtf|text\/plain/.test(mime)) return '📄';
+  if (/zip|rar|7z|compressed/.test(mime)) return '🗜️';
+  return '📎';
+}
+
+function buildFolder3dTile_(id, name) {
+  const safeName = escapeHtml(name);
+  return (
+    '<button type="button" class="tf-item tf-folder3d-btn group" data-kind="folder" data-id="' + escapeHtml(id) +
+      '" data-name="' + safeName + '" title="' + safeName + '">' +
+      '<div class="file relative w-14 h-10 origin-bottom [perspective:1500px]">' +
+        '<div class="work-5 bg-amber-600 w-full h-full origin-top rounded-xl rounded-tl-none group-hover:shadow-[0_20px_40px_rgba(0,0,0,.2)] transition-all ease duration-300 relative after:absolute after:content-[\'\'] after:bottom-[99%] after:left-0 after:w-[19px] after:h-[4px] after:bg-amber-600 after:rounded-t-xl before:absolute before:content-[\'\'] before:-top-[4px] before:left-[18px] before:w-[4px] before:h-[4px] before:bg-amber-600 before:[clip-path:polygon(0_35%,0%_100%,50%_100%);]"></div>' +
+        '<div class="work-4 absolute inset-0.5 bg-zinc-400 rounded-xl transition-all ease duration-300 origin-bottom select-none group-hover:[transform:rotateX(-20deg)]"></div>' +
+        '<div class="work-3 absolute inset-0.5 bg-zinc-300 rounded-xl transition-all ease duration-300 origin-bottom group-hover:[transform:rotateX(-30deg)]"></div>' +
+        '<div class="work-2 absolute inset-0.5 bg-zinc-200 rounded-xl transition-all ease duration-300 origin-bottom group-hover:[transform:rotateX(-38deg)]"></div>' +
+        '<div class="work-1 absolute bottom-0 bg-gradient-to-t from-amber-500 to-amber-400 w-full h-[37px] rounded-xl rounded-tr-none after:absolute after:content-[\'\'] after:bottom-[99%] after:right-0 after:w-[35px] after:h-[4px] after:bg-amber-400 after:rounded-t-xl before:absolute before:content-[\'\'] before:-top-[2px] before:right-[34px] before:size-[3px] before:bg-amber-400 before:[clip-path:polygon(100%_14%,50%_100%,100%_100%);] transition-all ease duration-300 origin-bottom group-hover:shadow-[inset_0_20px_40px_#fbbf24,_inset_0_-20px_40px_#d97706] group-hover:[transform:rotateX(-46deg)_translateY(1px)]"></div>' +
+      '</div>' +
+      '<span class="tf-item-name">' + safeName + '</span>' +
+    '</button>'
+  );
+}
+
+function tfClearFrame() {
+  if (tfFrame && tfFrame.getAttribute('src')) tfFrame.setAttribute('src', 'about:blank');
+}
+
+function tfShowList() {
+  tfClearFrame();
+  tfFrame.style.display = 'none';
+  tfSheet.style.display = 'none';
+  tfSheetTabs.style.display = 'none';
+  tfEdit.style.display = 'none';
+  tfList.style.display = 'grid';
+}
+
+function tfRenderCrumbs() {
+  let html = '';
+  tfPath.forEach((p, i) => {
+    const isCurrent = (i === tfPath.length - 1) && !tfFile;
+    if (i > 0) html += '<span class="tf-sep">›</span>';
+    html += isCurrent
+      ? '<span class="tf-crumb-current">' + escapeHtml(p.name) + '</span>'
+      : '<button type="button" class="tf-crumb" data-level="' + i + '">' + escapeHtml(p.name) + '</button>';
+  });
+  if (tfFile) html += '<span class="tf-sep">›</span><span class="tf-crumb-current">' + escapeHtml(tfFile.name) + '</span>';
+  tfCrumbs.innerHTML = html;
+
+  /* Master Link File top folder: nothing to go back to, so no Back button */
+  const noBack = tfMode === 'master' && tfPath.length <= 1 && !tfFile;
+  tfBack.style.display = noBack ? 'none' : '';
+  tfBackSep.style.display = noBack ? 'none' : '';
+}
+
+function tfShowError(message) {
+  tfList.innerHTML = '<div class="tf-msg error">' + escapeHtml(message) +
+    '<br><button type="button" class="tf-retry" data-act="retry">Try again</button></div>';
+}
+
+function tfRenderList(data) {
+  const collator = (window.Intl && Intl.Collator) ? new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }) : null;
+  const byName = (a, b) => collator ? collator.compare(a.name, b.name) : (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+
+  let html = '';
+  tfFilesById = {};
+  (data.folders || []).slice().sort(byName).forEach(f => {
+    html += buildFolder3dTile_(f.id, f.name);
+  });
+  (data.files || []).slice().sort(byName).forEach(f => {
+    tfFilesById[f.id] = f;
+    html += '<button type="button" class="tf-item" data-kind="file" data-id="' + escapeHtml(f.id) + '" title="' + escapeHtml(f.name) + '">' +
+              '<span class="tf-item-icon" aria-hidden="true">' + tfIcon(f.mime) + '</span>' +
+              '<span class="tf-item-name">' + escapeHtml(f.name) + '</span>' +
+            '</button>';
+  });
+  if (!html) html = '<div class="tf-msg">This folder is empty.</div>';
+
+  tfList.innerHTML = html;
+  tfList.scrollTop = 0;
+}
+
+function tfLoad() {
+  const cur = tfPath[tfPath.length - 1];
+  tfFile = null;
+  tfShowList();
+  tfRenderCrumbs();
+
+  if (FOLDER_INDEX[cur.id]) { tfRenderList(FOLDER_INDEX[cur.id]); return; }
+  if (tfCache[cur.id]) { tfRenderList(tfCache[cur.id]); return; }
+
+  const myToken = ++tfToken;
+  tfList.innerHTML = '<div class="tf-msg">Loading…</div>';
+
+  callServer({ action: 'contents', id: cur.id },
+    data => {
+      if (myToken !== tfToken) return;
+      tfCache[cur.id] = data;
+      tfRenderList(data);
+    },
+    err => {
+      if (myToken !== tfToken) return;
+      tfShowError('Could not load this folder — ' + errText(err));
+    });
+}
+
+/* a file opens inside the main panel (Google editor for Docs/Sheets/Slides/Office, Drive viewer for the rest) */
+function tfShowFile(f) {
+  enterPanelFullscreen();
+  tfToken++;
+  tfFile = f;
+  tfRenderCrumbs();
+  tfList.style.display = 'none';
+
+  /* a Google Sheet in the Master Link File: drawn by the dashboard so its links open in the main panel */
+  if (tfMode === 'master' && f.mime === GSHEET_MIME) { showLinkSheet(f); return; }
+
+  tfSheet.style.display = 'none';
+  tfSheetTabs.style.display = 'none';
+  tfEdit.style.display = 'none';
+  tfFrame.style.display = 'block';
+  tfFrame.setAttribute('src', f.preview);
+}
+
+/* called by the folder button on a card's flip back */
+function openFolder(folder) {
+  tfMode = 'cards';
+  tfPath = [{ id: folder.id, name: folder.name }];
+  tfFile = null;
+  tfCache = {};
+  showPanel('viewer');
+  tfLoad();
+}
+
+function closeViewer() {
+  tfToken++;
+  showPanel('cards');
+}
+
+tfList.addEventListener('click', e => {
+  if (e.target.closest('[data-act="retry"]')) { tfLoad(); return; }
+  const item = e.target.closest('button.tf-item');
+  if (!item) return;
+  if (item.getAttribute('data-kind') === 'folder') {
+    tfPath.push({ id: item.getAttribute('data-id'), name: item.getAttribute('data-name') });
+    tfLoad();
+  } else {
+    const f = tfFilesById[item.getAttribute('data-id')];
+    if (f) tfShowFile(f);
+  }
+});
+
+tfCrumbs.addEventListener('click', e => {
+  const crumb = e.target.closest('.tf-crumb');
+  if (!crumb) return;
+  exitPanelFullscreen();
+  tfPath = tfPath.slice(0, parseInt(crumb.getAttribute('data-level'), 10) + 1);
+  tfLoad();
+});
+
+/* Back: file → its folder → parent folder → the cards (Master Link File stops at its top folder) */
+tfBack.addEventListener('click', () => {
+  exitPanelFullscreen();
+  if (tfFile) { tfLoad(); return; }
+  if (tfPath.length > 1) { tfPath.pop(); tfLoad(); return; }
+  if (tfMode === 'cards') closeViewer();
+});
+
+/* ---------- DASHBOARD-FILE VIEW: all folders of the school, each with its files ---------- */
+let fvFilesById = {};
+let fvSchoolName = '';
+
+function fvClearFrame() {
+  if (fvFrame && fvFrame.getAttribute('src')) fvFrame.setAttribute('src', 'about:blank');
+}
+
+/* every file of the school (any folder depth), no duplicates */
+function collectFiles_(node, out, seen) {
+  (node.files || []).forEach(f => {
+    if (!seen[f.id]) { seen[f.id] = true; out.push(f); }
+  });
+  (node.folders || []).forEach(sub => collectFiles_(sub, out, seen));
+  return out;
+}
+
+/* "grade 7 MATH_worksheet.pdf" -> "Grade 7 Math_Worksheet.pdf" */
+function toWordCase(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/(^|[\s_\-(\[{\/&+])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
+}
+
+function fileTypeLabel(mime) {
+  mime = String(mime || '');
+  if (mime === 'application/vnd.google-apps.document') return 'Google Doc';
+  if (mime === 'application/vnd.google-apps.spreadsheet') return 'Google Sheet';
+  if (mime === 'application/vnd.google-apps.presentation') return 'Google Slides';
+  if (mime === 'application/vnd.google-apps.form') return 'Google Form';
+  if (mime === 'application/pdf') return 'PDF';
+  if (/wordprocessingml|msword/.test(mime)) return 'Word';
+  if (/spreadsheetml|ms-excel|csv/.test(mime)) return 'Excel';
+  if (/presentationml|powerpoint/.test(mime)) return 'PowerPoint';
+  if (mime.indexOf('image/') === 0) return 'Image';
+  if (mime.indexOf('video/') === 0) return 'Video';
+  if (mime.indexOf('audio/') === 0) return 'Audio';
+  if (/zip|rar|7z|compressed/.test(mime)) return 'Archive';
+  return 'File';
+}
+
+function fvTitleHtml(count) {
+  let html = '<span class="tf-crumb-current">' + escapeHtml(toWordCase(fvSchoolName)) + ' — All Files</span>';
+  if (count != null) html += '<span class="fv-count">' + count + ' file' + (count === 1 ? '' : 's') + '</span>';
+  return html;
+}
+
+let fvCount = null;
+
+function fvShowList() {
+  fvClearFrame();
+  fvFrame.style.display = 'none';
+  fvList.style.display = 'block';
+  fvBack.style.display = 'none';
+  fvBackSep.style.display = 'none';
+  fvCrumbs.innerHTML = fvTitleHtml(fvCount);
+}
+
+function fvMessage(text, isError) {
+  fvList.innerHTML = '<div class="tf-msg' + (isError ? ' error' : '') + '">' + escapeHtml(text) + '</div>';
+}
+
+/* one alphabetical column of every file — no folder names */
+function renderFileView(tree) {
+  fvFilesById = {};
+  const files = collectFiles_(tree, [], {});
+  const collator = (window.Intl && Intl.Collator) ? new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }) : null;
+  files.sort((a, b) => collator ? collator.compare(a.name, b.name) : (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+
+  fvCount = files.length;
+  fvCrumbs.innerHTML = fvTitleHtml(fvCount);
+
+  if (!files.length) { fvMessage('No files found'); return; }
+
+  let html = '<ul class="fv-rows">';
+  files.forEach(f => {
+    fvFilesById[f.id] = f;
+    const name = toWordCase(f.name);
+    html += '<li><button type="button" class="fv-file" data-id="' + escapeHtml(f.id) + '" title="' + escapeHtml(name) + '">' +
+              '<span class="fv-badge" aria-hidden="true">' + tfIcon(f.mime) + '</span>' +
+              '<span class="fv-file-name">' + escapeHtml(name) + '</span>' +
+              '<span class="fv-type">' + fileTypeLabel(f.mime) + '</span>' +
+            '</button></li>';
+  });
+  html += '</ul>';
+
+  fvList.innerHTML = html;
+  fvList.scrollTop = 0;
+}
+
+function showFileView(id, buttonText) {
+  const token = ++requestToken;
+  fvSchoolName = buttonText;
+  fvCount = null;
+  showPanel('fileview');
+  fvShowList();
+
+  const hadTree = !!TREE[id];
+  if (!hadTree) fvMessage('Loading files…');
+
+  getTree(id)
+    .then(tree => {
+      if (token !== requestToken) return;
+      renderFileView(tree);
+      if (hadTree) refreshTreeInBackground(id);
+    })
+    .catch(err => {
+      if (token !== requestToken) return;
+      fvMessage('Could not load files — ' + errText(err), true);
+    });
+}
+
+/* clicking a file opens it in the main panel */
+function fvShowFile(f) {
+  enterPanelFullscreen();
+  fvList.style.display = 'none';
+  fvFrame.style.display = 'block';
+  fvFrame.setAttribute('src', f.preview);
+  fvBack.style.display = '';
+  fvBackSep.style.display = '';
+  fvCrumbs.innerHTML = '<span class="tf-crumb-current">' + escapeHtml(toWordCase(f.name)) + '</span>';
+}
+
+fvList.addEventListener('click', e => {
+  const btn = e.target.closest('.fv-file');
+  if (!btn) return;
+  const f = fvFilesById[btn.getAttribute('data-id')];
+  if (f) fvShowFile(f);
+});
+
+/* Back keeps the list where it was scrolled */
+fvBack.addEventListener('click', () => {
+  exitPanelFullscreen();
+  fvShowList();
+});
+
+/* ---------- WEB PAGE PANEL: any web link opens inside the main panel ---------- */
+const TADREES_URL = 'https://tadreesholding.com/';
+
+/* School Portal (first option in each school's Portals dropdown) */
+const SCHOOL_PORTALS = {
+  1: 'https://ais.sch.sa/',                     /* ALROWAD */
+  2: 'https://www.alolayyaschools.com/',        /* AL-OLAYA */
+  3: 'https://dar.edu.sa/en/'                   /* DAR-AL-ULOOM */
+};
+/* Other portals in the navbar Portals dropdown (opened the same way as School Portal) */
+const SCHOOL_LINKS = {
+  1: {                                          /* ALROWAD */
+    myais:     { url: 'https://my.ais.sch.sa/',                          name: 'My Ais Portal' },
+    lms:       { url: 'https://lms.ais.sch.sa/login?&school=2683909998', name: 'LMS Portal' },
+    timetable: { url: 'https://arrowad.edupage.org/timetable/',          name: 'Time Table Portal' }
+  }
+};
+const LINK_CACHE = {};       /* url → { url, framable, google } from Apps Script */
+
+const SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals allow-presentation';
+
+function wvClearFrame() {
+  if (wvFrame && wvFrame.getAttribute('src')) wvFrame.setAttribute('src', 'about:blank');
+}
+
+function wvShowMsg(html) {
+  wvClearFrame();
+  wvFrame.style.display = 'none';
+  wvMsg.innerHTML = html;
+  wvMsg.style.display = 'flex';
+}
+
+let wvLocked = false;
+let wvBackTo = null;       /* panel to return to (a link opened from a Master Link sheet) */
+
+function wvShowFrame(url, google) {
+  /* non-Google sites run sandboxed so they cannot take over the whole dashboard */
+  if (google) wvFrame.removeAttribute('sandbox');
+  else wvFrame.setAttribute('sandbox', SANDBOX);
+  /* locked portal: the page inside cannot be scrolled */
+  if (wvLocked) wvFrame.setAttribute('scrolling', 'no');
+  else wvFrame.removeAttribute('scrolling');
+  wvMsg.style.display = 'none';
+  wvFrame.style.display = 'block';
+  wvFrame.setAttribute('src', url);
+}
+
+/* Apps Script turns Google links into their in-page form (editor, preview, folder view…)
+   and checks whether a website allows being shown inside another page */
+function resolveLink_(url) {
+  if (LINK_CACHE[url]) return Promise.resolve(LINK_CACHE[url]);
+  return new Promise(resolve => {
+    callServer({ action: 'resolve', url: url },
+      r => { LINK_CACHE[url] = r; resolve(r); },
+      () => resolve({ url: url, framable: true, google: false }));   /* server unreachable: just try */
+  });
+}
+
+function openWebPage(url, title, opts) {
+  opts = opts || {};
+  const token = ++requestToken;
+
+  webview.classList.toggle('portal', !!opts.portal);
+  wvBackTo = opts.backTo || null;
+  wvBack.textContent = '\u2190 Back' + (opts.backLabel ? ' to ' + opts.backLabel : '');
+  wvBack.style.display = wvBackTo ? '' : 'none';
+  wvSep.style.display = wvBackTo ? '' : 'none';
+  wvLocked = !!(opts.portal && opts.locked);
+  webview.classList.toggle('locked', wvLocked);
+  wvTitle.innerHTML = '<span class="tf-crumb-current">' + escapeHtml(title || url) + '</span>';
+  wvUrl.textContent = url;
+  wvUrl.title = url;
+
+  showPanel('web');
+  wvShowMsg('Loading…');
+
+  resolveLink_(url).then(r => {
+    if (token !== requestToken) return;
+    if (r.framable) {
+      wvShowFrame(r.url, r.google);
+    } else {
+      wvShowMsg(
+        '<div style="font-size:34px;">🔒</div>' +
+        '<div><b>' + escapeHtml(title || url) + '</b> does not allow itself to be shown inside another page.</div>' +
+        '<div style="font-size:12px;">This is a setting of that website, so it can only be opened on its own.</div>' +
+        '<button type="button" class="tf-retry" data-open-tab="' + escapeHtml(url) + '">Open in a new tab ↗</button>'
+      );
+    }
+  });
+}
+
+wvMsg.addEventListener('click', e => {
+  const b = e.target.closest('[data-open-tab]');
+  if (b) window.open(b.getAttribute('data-open-tab'), '_blank', 'noopener,noreferrer');
+});
+
+/* ---------- MASTER LINK FILE: a Google Drive folder (its ID is only in Code.gs) ----------
+   Opens in the same folder browser as Dashboard-Folder View:
+   folders and files as tiles, a click on a file opens it in the main panel. */
+let MASTER_TREE = null;
+let MASTER_PROMISE = null;
+let MASTER_REFRESHING = false;
+
+function fetchMasterTree_() {
+  return new Promise((resolve, reject) => {
+    callServer({ action: 'masterLinks' },
+      tree => { MASTER_TREE = tree; indexTree_(tree); preloadLinkSheets_(tree); resolve(tree); },
+      reject);
+  });
+}
+
+function getMasterTree_() {
+  if (MASTER_TREE) return Promise.resolve(MASTER_TREE);
+  if (!MASTER_PROMISE) {
+    MASTER_PROMISE = fetchMasterTree_().catch(err => { MASTER_PROMISE = null; throw err; });
+  }
+  return MASTER_PROMISE;
+}
+
+function showMasterLinks() {
+  const token = ++requestToken;
+  tfToken++;
+  tfMode = 'master';
+  tfPath = [{ id: '', name: 'Master Link File' }];
+  tfFile = null;
+  tfCache = {};
+  showPanel('viewer');
+  tfShowList();
+  tfRenderCrumbs();
+
+  const hadTree = !!MASTER_TREE;
+  if (!hadTree) tfList.innerHTML = '<div class="tf-msg">Loading…</div>';
+
+  getMasterTree_()
+    .then(tree => {
+      if (token !== requestToken) return;
+      tfPath = [{ id: tree.id, name: tree.name }];
+      tfLoad();
+      /* quietly re-read the folder so new files appear next time */
+      if (hadTree && !MASTER_REFRESHING) {
+        MASTER_REFRESHING = true;
+        fetchMasterTree_().catch(() => {}).then(() => { MASTER_REFRESHING = false; });
+      }
+    })
+    .catch(err => {
+      if (token !== requestToken) return;
+      tfList.innerHTML = '<div class="tf-msg error">Could not load the Master Link File — ' + escapeHtml(errText(err)) + '</div>';
+    });
+}
+
+/* preload the Master Link File folder with everything else */
+getMasterTree_().catch(err => console.warn('Master Link File preload failed:', err));
+
+/* ---------- GOOGLE SHEETS inside the Master Link File ----------
+   Google's own sheet editor opens every clicked link in a new tab (a page inside a frame
+   cannot be told otherwise), so these sheets are read by Apps Script and drawn here:
+   a click on a link opens it in the main panel. "Edit in Google Sheets" still opens the editor. */
+const GSHEET_MIME = 'application/vnd.google-apps.spreadsheet';
+const SHEET_DATA = {};        /* file id → { title, sheets:[…] } */
+const SHEET_JSON = {};
+const SHEET_PROMISE = {};
+let sheetFile = null;         /* the sheet being shown */
+let sheetTab = 0;
+
+function fetchLinkSheet_(id) {
+  return new Promise((resolve, reject) => {
+    callServer({ action: 'sheet', id: id },
+      d => { SHEET_DATA[id] = d; SHEET_JSON[id] = JSON.stringify(d); resolve(d); },
+      reject);
+  });
+}
+
+function getLinkSheet_(id) {
+  if (SHEET_DATA[id]) return Promise.resolve(SHEET_DATA[id]);
+  if (!SHEET_PROMISE[id]) {
+    SHEET_PROMISE[id] = fetchLinkSheet_(id).catch(err => { delete SHEET_PROMISE[id]; throw err; });
+  }
+  return SHEET_PROMISE[id];
+}
+
+/* every Google Sheet of the Master Link File is read in the background, so it opens instantly */
+function preloadLinkSheets_(tree) {
+  collectFiles_(tree, [], {})
+    .filter(f => f.mime === GSHEET_MIME && !SHEET_DATA[f.id])
+    .forEach(f => getLinkSheet_(f.id).catch(() => {}));
+}
+
+function colLetter_(n) {
+  let s = '';
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
+function safeColor_(c) {
+  return /^#[0-9a-f]{3,8}$/i.test(String(c || '')) ? c : '';
+}
+
+function mlCellHtml_(cell) {
+  if (!cell) return '';
+  if (cell.runs) {
+    return cell.runs.map(r => r.l
+      ? '<span class="ml-link" role="link" tabindex="0" data-url="' + escapeHtml(r.l) + '">' + escapeHtml(r.t) + '</span>'
+      : escapeHtml(r.t)).join('');
+  }
+  if (cell.l) {
+    return '<span class="ml-link" role="link" tabindex="0" data-url="' + escapeHtml(cell.l) + '">' + escapeHtml(cell.t || cell.l) + '</span>';
+  }
+  return escapeHtml(cell.t);
+}
+
+function renderLinkSheet(data, keepScroll) {
+  const sheets = (data && data.sheets) || [];
+  if (sheetTab >= sheets.length) sheetTab = 0;
+
+  tfSheetTabs.innerHTML = sheets.length > 1
+    ? sheets.map((sh, i) => '<button type="button" class="ml-tab' + (i === sheetTab ? ' active' : '') + '" data-tab="' + i + '">' + escapeHtml(sh.name) + '</button>').join('')
+    : '';
+  tfSheetTabs.style.display = sheets.length > 1 ? 'flex' : 'none';
+
+  const sh = sheets[sheetTab];
+  if (!sh || !sh.rows || !sh.rows.length) {
+    tfSheet.innerHTML = '<div class="tf-msg">This sheet is empty.</div>';
+    return;
+  }
+
+  const top = tfSheet.scrollTop, left = tfSheet.scrollLeft;
+  const cols = sh.widths && sh.widths.length ? sh.widths.length : Math.max.apply(null, sh.rows.map(r => r.length));
+
+  let html = '<table class="ml-table"><colgroup><col style="width:42px">';
+  for (let c = 0; c < cols; c++) {
+    const w = Math.max(40, Math.min(600, (sh.widths && sh.widths[c]) || 100));
+    html += '<col style="width:' + w + 'px">';
+  }
+  html += '</colgroup><thead><tr><th class="ml-corner ml-rownum"></th>';
+  for (let c = 1; c <= cols; c++) html += '<th>' + colLetter_(c) + '</th>';
+  html += '</tr></thead><tbody>';
+
+  sh.rows.forEach((row, r) => {
+    html += '<tr><th class="ml-rownum">' + (r + 1) + '</th>';
+    for (let c = 0; c < cols; c++) {
+      const cell = row[c] || null;
+      let style = '';
+      if (cell) {
+        const bg = safeColor_(cell.bg), fc = safeColor_(cell.c);
+        if (bg) style += 'background-color:' + bg + ';';
+        if (fc && !(cell.l || cell.runs)) style += 'color:' + fc + ';';
+        if (cell.b) style += 'font-weight:700;';
+        if (cell.a === 'center' || cell.a === 'right') style += 'text-align:' + cell.a + ';';
+      }
+      const title = cell && cell.t ? ' title="' + escapeHtml(cell.t) + '"' : '';
+      html += '<td' + (style ? ' style="' + style + '"' : '') + title + '>' + mlCellHtml_(cell) + '</td>';
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  tfSheet.innerHTML = html;
+  if (keepScroll) { tfSheet.scrollTop = top; tfSheet.scrollLeft = left; }
+  else { tfSheet.scrollTop = 0; tfSheet.scrollLeft = 0; }
+}
+
+function sheetIsShown_(f) {
+  return tfFile === f && tfSheet.style.display !== 'none' && viewer.classList.contains('show');
+}
+
+function showLinkSheet(f) {
+  const myToken = tfToken;
+  if (sheetFile !== f) sheetTab = 0;
+  sheetFile = f;
+
+  tfClearFrame();
+  tfFrame.style.display = 'none';
+  tfSheet.style.display = 'block';
+  tfEdit.style.display = '';
+
+  if (SHEET_DATA[f.id]) {
+    renderLinkSheet(SHEET_DATA[f.id], false);
+    /* quietly re-read; redraw only if something changed */
+    const before = SHEET_JSON[f.id];
+    fetchLinkSheet_(f.id)
+      .then(d => { if (SHEET_JSON[f.id] !== before && sheetIsShown_(f)) renderLinkSheet(d, true); })
+      .catch(() => {});
+    return;
+  }
+
+  tfSheetTabs.style.display = 'none';
+  tfSheet.innerHTML = '<div class="tf-msg">Loading…</div>';
+  getLinkSheet_(f.id)
+    .then(d => { if (myToken === tfToken && tfFile === f) renderLinkSheet(d, false); })
+    .catch(err => {
+      if (myToken !== tfToken || tfFile !== f) return;
+      tfSheet.innerHTML = '<div class="tf-msg error">Could not load this sheet — ' + escapeHtml(errText(err)) + '</div>';
+    });
+}
+
+tfSheetTabs.addEventListener('click', e => {
+  const t = e.target.closest('.ml-tab');
+  if (!t || !sheetFile || !SHEET_DATA[sheetFile.id]) return;
+  sheetTab = parseInt(t.getAttribute('data-tab'), 10) || 0;
+  renderLinkSheet(SHEET_DATA[sheetFile.id], false);
+});
+
+/* a link in the sheet opens inside the main panel; Back returns to the sheet */
+function openSheetLink_(el) {
+  enterPanelFullscreen();
+  openWebPage(el.getAttribute('data-url'), el.textContent.trim(), {
+    backTo: 'viewer',
+    backLabel: sheetFile ? sheetFile.name : ''
+  });
+}
+tfSheet.addEventListener('click', e => {
+  const a = e.target.closest('.ml-link');
+  if (a) openSheetLink_(a);
+});
+tfSheet.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const a = e.target.closest('.ml-link');
+  if (a) { e.preventDefault(); openSheetLink_(a); }
+});
+
+/* the real Google Sheets editor, for changing the sheet */
+tfEdit.addEventListener('click', () => {
+  if (!tfFile) return;
+  tfSheet.style.display = 'none';
+  tfSheetTabs.style.display = 'none';
+  tfEdit.style.display = 'none';
+  tfFrame.style.display = 'block';
+  tfFrame.setAttribute('src', tfFile.preview);
+  if (SHEET_DATA[tfFile.id]) { delete SHEET_DATA[tfFile.id]; delete SHEET_PROMISE[tfFile.id]; }   /* re-read after editing */
+});
+
+wvBack.addEventListener('click', () => {
+  if (!wvBackTo) return;
+  exitPanelFullscreen();
+  requestToken++;
+  showPanel(wvBackTo);
+});
+
+/* ---------- build sidebar dropdowns ---------- */
+const HOME_SUBMENU = [
+  { key: 'masterlinks', label: '🔗 Master Link File' }
+];
+
+document.querySelectorAll('.menu-item.has-sub').forEach(item => {
+  const list = item.querySelector('.submenu');
+  const items = item.dataset.menu === 'home' ? HOME_SUBMENU : SUBMENU;
+  items.forEach(s => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sub-button';
+    b.dataset.view = s.key;
+    b.textContent = s.label;
+    li.appendChild(b);
+    list.appendChild(li);
+  });
+});
+
+function clearActive() {
+  document.querySelectorAll('.menu-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sub-button').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-dd-item').forEach(el => el.classList.remove('active'));
+}
+
+/* ---------- same click logic for every dropdown option (sidebar or navbar) ---------- */
+function runView(view, id, buttonText) {
+  if (view === 'portal' && SCHOOL_PORTALS[id]) {
+    openWebPage(SCHOOL_PORTALS[id], toWordCase(buttonText) + ' — School Portal');
+  } else if (SCHOOL_LINKS[id] && SCHOOL_LINKS[id][view]) {
+    const link = SCHOOL_LINKS[id][view];
+    openWebPage(link.url, toWordCase(buttonText) + ' — ' + link.name);
+  } else if (view === 'academics') {
+    showAcademics(id, buttonText);
+  } else if (view === 'fileview') {
+    showFileView(id, buttonText);
+  } else if (view === 'tadrees') {
+    openWebPage(TADREES_URL, 'Tadrees Portal', { portal: true });
+  } else if (view === 'masterlinks') {
+    showMasterLinks();
+  } else {
+    /* Curriculum / Teachers List / Other — not defined yet, show the school screen for now */
+    loadSchool(id);
+  }
+}
+
+/* ---------- NAVBAR DROPDOWNS: Portals (follows the sidebar) + Admin ---------- */
+const portalsDD   = document.getElementById('portalsDD');
+const adminDD     = document.getElementById('adminDD');
+const portalsList = document.getElementById('portalsList');
+let navCategory = 0;            /* sidebar category the Portals dropdown belongs to */
+
+document.getElementById('adminName').textContent  = ADMIN_INFO.name;
+document.getElementById('adminEmail').textContent = ADMIN_INFO.email;
+
+function buildPortalsMenu(id) {
+  if (navCategory === id && portalsList.childElementCount) return;
+  navCategory = id;
+  const items = id === 0 ? NAV_PORTALS_HOME : (NAV_PORTALS_SCHOOL[id] || []);
+  portalsList.innerHTML = '';
+  items.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'nav-dd-item';
+    b.setAttribute('role', 'menuitem');
+    b.dataset.view = s.key;
+    b.textContent = s.label;
+    portalsList.appendChild(b);
+  });
+}
+
+function closeNavDropdowns(except) {
+  document.querySelectorAll('.nav-dd.open').forEach(dd => {
+    if (dd === except) return;
+    dd.classList.remove('open');
+    dd.querySelector('.nav-dd-btn').setAttribute('aria-expanded', 'false');
+  });
+}
+
+document.querySelectorAll('.nav-dd > .nav-dd-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const dd = btn.parentElement;
+    closeNavDropdowns(dd);
+    const open = dd.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+});
+
+/* clicks inside a menu don't close it (except on a portal item) */
+document.querySelectorAll('.nav-dd-menu').forEach(m => m.addEventListener('click', e => e.stopPropagation()));
+document.addEventListener('click', () => closeNavDropdowns());
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNavDropdowns(); });
+window.addEventListener('blur', () => closeNavDropdowns());   /* clicking into an iframe */
+
+portalsList.addEventListener('click', e => {
+  const btn = e.target.closest('.nav-dd-item');
+  if (!btn) return;
+  const id = navCategory;
+  const item = document.querySelector('.menu-item[data-school="' + id + '"]');
+  const buttonText = item.querySelector('.menu-title').textContent.trim();
+
+  closeNavDropdowns();
+  clearActive();
+  item.querySelector('.menu-content').classList.add('active');
+  btn.classList.add('active');
+  setNavTitle(buttonText);
+
+  runView(btn.dataset.view, id, buttonText);
+});
+
+buildPortalsMenu(0);
+
+/* ---------- main sidebar buttons ---------- */
+document.querySelectorAll('.menu-item > .menu-button').forEach(button => {
+  button.addEventListener('click', () => {
+    const id = Number(button.dataset.school);
+    const item = button.parentElement;
+    const wasOpen = item.classList.contains('open');
+
+    /* close every dropdown, then toggle the one clicked */
+    document.querySelectorAll('.menu-item.open').forEach(el => el.classList.remove('open'));
+    if (item.classList.contains('has-sub') && !wasOpen) item.classList.add('open');
+
+    clearActive();
+    button.querySelector('.menu-content').classList.add('active');
+    setNavTitle(button.querySelector('.menu-title').textContent.trim());
+    buildPortalsMenu(id);
+    if (id === 0) {
+      openWebPage(TADREES_URL, 'Tadrees Portal', { portal: true, locked: true });
+    } else {
+      loadSchool(id);
+    }
+  });
+});
+
+/* ---------- sidebar dropdown items ---------- */
+document.querySelectorAll('.sub-button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.closest('.menu-item');
+    const id = Number(item.dataset.school);
+    const buttonText = item.querySelector('.menu-title').textContent.trim();
+
+    clearActive();
+    item.querySelector('.menu-content').classList.add('active');
+    btn.classList.add('active');
+    setNavTitle(buttonText);
+    buildPortalsMenu(id);
+
+    runView(btn.dataset.view, id, buttonText);
+  });
+});
+
+/* ---------- sidebar footer: current day, date, time ---------- */
+const clockEl = document.getElementById('sidebarClock');
+function updateClock() {
+  const now = new Date();
+  const day  = now.toLocaleDateString('en-GB', { weekday: 'short' });
+  const date = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  clockEl.textContent = `${day} | ${date} | ${time}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* On page load: Tadrees Portal in the main panel (locked, no scrolling). */
+openWebPage(TADREES_URL, 'Tadrees Portal', { portal: true, locked: true });
+</script>
+<script>
+document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); e.stopPropagation(); return false; }
+});
+document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+</script>
+</body>
+</html>
